@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¡Reto del Mango!</title>
+<style>
+:root{--green:#267a3d;--yellow:#ffd34e;--cream:#fff9e8}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(145deg,#e9f7df,#fff4c9);color:#233326;min-height:100vh}
+main{max-width:760px;margin:auto;padding:22px}
+.card{background:white;border-radius:22px;padding:22px;box-shadow:0 8px 28px #315b3020;margin:14px 0}
+h1{text-align:center;color:var(--green);font-size:2rem;margin-bottom:6px}
+.sub{text-align:center;margin-top:0}
+.scoreboard{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.team{border:2px solid #dcebd7;border-radius:16px;padding:12px;text-align:center}
+.team.active{border-color:var(--green);background:#eff9eb}
+.big{font-size:2rem;font-weight:bold;color:var(--green)}
+button{border:0;border-radius:12px;padding:13px 18px;background:var(--green);color:white;font-weight:bold;font-size:1rem;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.answers{display:grid;gap:10px;margin-top:18px}
+.answers button{background:#f1f6ed;color:#203b27;border:2px solid #dcebd7;text-align:left}
+.answers button:hover{border-color:var(--green)}
+.answers button.correct{background:#d9f4d8;border-color:#299447}
+.answers button.wrong{background:#ffe0d9;border-color:#d66b55}
+#feedback{font-weight:bold;min-height:26px;margin-top:12px}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+small{color:#617061}
+@media(max-width:480px){main{padding:12px}.card{padding:17px}h1{font-size:1.7rem}}
+</style>
+</head>
+<body>
+<main>
+  <h1>🥭 ¡Reto del Mango! 🌳</h1>
+  <p class="sub">Dos equipos, diez preguntas y un solo equipo ganador.</p>
+  <section class="card">
+    <div class="scoreboard">
+      <div class="team active" id="box0"><b>Equipo 1</b><div class="big" id="score0">0%</div><small id="count0">0 preguntas</small></div>
+      <div class="team" id="box1"><b>Equipo 2</b><div class="big" id="score1">0%</div><small id="count1">0 preguntas</small></div>
+    </div>
+  </section>
+  <section class="card" id="game">
+    <p><b id="turn">Turno del Equipo 1</b> · Pregunta <span id="number">1</span> de 10</p>
+    <h2 id="question">¿Listos para jugar?</h2>
+    <div class="answers" id="answers"></div>
+    <p id="feedback" aria-live="polite"></p>
+    <div class="row"><button id="next" disabled>Siguiente pregunta</button></div>
+    <p><small>Cada respuesta correcta vale 10%. Si no saben la respuesta, pueden elegir una opción y continuar.</small></p>
+  </section>
+  <section class="card" id="result" hidden>
+    <h2>🏆 ¡Juego terminado!</h2>
+    <h3 id="winner"></h3>
+    <p id="finalscores"></p>
+    <div class="row"><button onclick="restart()">Jugar otra vez</button></div>
+  </section>
+  <p class="sub"><small>Actividad educativa sobre el árbol de mango y su fruto.</small></p>
+</main>
+<script>
+const bank=[
+{q:"¿Cuál es el nombre científico del árbol de mango?",a:["Mangifera indica","Persea americana","Citrus sinensis"],c:0},
+{q:"¿A qué familia botánica pertenece el mango?",a:["Rosaceae","Anacardiaceae","Fabaceae"],c:1},
+{q:"¿De qué región es originario el mango?",a:["Asia meridional","Europa del norte","América del sur"],c:0},
+{q:"¿Cómo se llama el fruto del árbol de mango?",a:["Mango","Manzana","Papaya"],c:0},
+{q:"¿Qué parte de la planta absorbe agua y minerales del suelo?",a:["Las flores","Las raíces","Los frutos"],c:1},
+{q:"¿Qué necesitan los árboles de mango para crecer?",a:["Luz solar, agua y suelo adecuado","Solo oscuridad","Únicamente arena seca"],c:0},
+{q:"¿Qué tipo de planta es el árbol de mango?",a:["Un árbol frutal","Un helecho","Una planta acuática"],c:0},
+{q:"¿Qué contiene la semilla del mango?",a:["El embrión de una nueva planta","La raíz de otro árbol","La pulpa del fruto"],c:0},
+{q:"¿Qué animales pueden ayudar a dispersar semillas de mango?",a:["Algunos mamíferos y aves","Solo peces","Ningún animal"],c:0},
+{q:"¿Cuál de estos nutrientes aporta el mango?",a:["Vitamina C","Vitamina B12 en gran cantidad","Ninguna vitamina"],c:0}
+];
+let questions=[],turn=0,step=0,scores=[0,0],answered=false;
+const $=id=>document.getElementById(id);
+function start(){questions=[...bank].sort(()=>Math.random()-.5);turn=0;step=0;scores=[0,0];answered=false;$('result').hidden=true;$('game').hidden=false;render()}
+function render(){
+ $('score0').textContent=scores[0]+'%';$('score1').textContent=scores[1]+'%';
+ $('count0').textContent=(turn===0?Math.ceil(step/2):Math.floor(step/2))+' preguntas respondidas';
+ $('count1').textContent=(turn===1?Math.ceil(step/2):Math.floor(step/2))+' preguntas respondidas';
+ $('box0').classList.toggle('active',turn===0);$('box1').classList.toggle('active',turn===1);
+ $('turn').textContent='Turno del Equipo '+(turn+1);$('number').textContent=step+1;
+ $('question').textContent=questions[step].q;$('feedback').textContent='';$('next').disabled=true;answered=false;
+ $('answers').innerHTML='';
+ questions[step].a.forEach((answer,i)=>{const b=document.createElement('button');b.textContent=String.fromCharCode(65+i)+'. '+answer;b.onclick=()=>choose(i,b);$('answers').appendChild(b)});
+}
+function choose(i,btn){
+ if(answered)return;answered=true;
+ const correct=questions[step].c;
+ [...$('answers').children].forEach((b,j)=>{b.disabled=true;if(j===correct)b.classList.add('correct')});
+ if(i===correct){scores[turn]+=10;$('feedback').textContent='¡Correcto! El equipo gana 10%.'}
+ else{$('feedback').textContent='No es correcto. La respuesta correcta está marcada.';btn.classList.add('wrong')}
+ $('score'+turn).textContent=scores[turn]+'%';$('next').disabled=false;
+}
+$('next').onclick=()=>{
+ if(!answered)return;
+ step++;
+ if(step>=10){finish();return}
+ turn=1-turn;render();
+};
+function finish(){
+ $('game').hidden=true;$('result').hidden=false;
+ $('score0').textContent=scores[0]+'%';$('score1').textContent=scores[1]+'%';
+ $('finalscores').textContent='Equipo 1: '+scores[0]+'% · Equipo 2: '+scores[1]+'%';
+ $('winner').textContent=scores[0]===scores[1]?'¡Es un empate! 🥳': '¡Gana el Equipo '+(scores[0]>scores[1]?1:2)+'! 🎉';
+}
+function restart(){start()}
+start();
+</script>
+</body></html>
